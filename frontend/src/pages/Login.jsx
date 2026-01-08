@@ -2,7 +2,7 @@ import { Zap } from 'lucide-react';
 
 export default function Login() {
     const handleGoogleLogin = () => {
-        window.location.href = 'http://localhost:5000/auth/google';
+        window.location.href = 'https://psc-challenger-backend.vercel.app/auth/google';
     };
 
     return (
