@@ -64,6 +64,46 @@ export default function AdminDashboard() {
         }
     };
 
+    const fetchSubscribers = async () => {
+        try {
+            const { data } = await client.get('/admin/users-status');
+            setSubscribers(data);
+        } catch (error) { console.error(error); }
+    };
+
+    const handleSendPush = async (e) => {
+        e.preventDefault();
+
+        let recipients = [];
+        if (selectAll) {
+            recipients = 'all';
+        } else {
+            recipients = selectedRecipients;
+        }
+
+        if (recipients !== 'all' && recipients.length === 0) {
+            return toast.error('Please select at least one recipient');
+        }
+
+        if (!confirm(`Send notification to ${selectAll ? 'ALL' : recipients.length} users?`)) return;
+
+        setLoading(true);
+        try {
+            await client.post('/admin/send-manual', {
+                ...manualPush,
+                recipients
+            });
+            toast.success('Notifications Sent!');
+            setManualPush({ title: '', body: '', url: '/' });
+            setSelectedRecipients([]);
+            setSelectAll(false);
+        } catch (error) {
+            toast.error('Failed to send notifications');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchStats(); // always fetch stats
         if (activeTab === 'review') fetchQuestions();
