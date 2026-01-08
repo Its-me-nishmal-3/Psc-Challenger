@@ -16,6 +16,7 @@ import Profile from './pages/Profile';
 import StoryMode from './pages/StoryMode';
 import LevelGameplay from './pages/LevelGameplay';
 import NotificationPrompt from './components/NotificationPrompt';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
     const { user, loading } = useAuth();
