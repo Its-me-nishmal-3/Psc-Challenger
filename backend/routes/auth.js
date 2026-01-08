@@ -41,7 +41,15 @@ router.post('/complete-profile', verifyToken, async (req, res) => {
 router.post('/subscribe', verifyToken, async (req, res) => {
     try {
         const subscription = req.body;
-        await User.findByIdAndUpdate(req.user.id, { pushSubscription: subscription });
+        // Check if subscription object is valid
+        if (!subscription || !subscription.endpoint) {
+            return res.status(400).json({ message: 'Invalid subscription object' });
+        }
+
+        // Use $addToSet to avoid duplicates based on the endpoint
+        await User.findByIdAndUpdate(req.user.id, {
+            $addToSet: { pushSubscriptions: subscription }
+        });
         res.status(201).json({});
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });

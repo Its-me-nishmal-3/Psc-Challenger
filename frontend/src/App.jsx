@@ -15,7 +15,7 @@ import Archive from './pages/Archive';
 import Profile from './pages/Profile';
 import StoryMode from './pages/StoryMode';
 import LevelGameplay from './pages/LevelGameplay';
-import PwaInstallPrompt from './components/PwaInstallPrompt';
+import NotificationPrompt from './components/NotificationPrompt';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
     const { user, loading } = useAuth();
@@ -48,32 +48,7 @@ const urlBase64ToUint8Array = (base64String) => {
     return outputArray;
 }
 
-const PushManager = () => {
-    const { user } = useAuth();
 
-    useEffect(() => {
-        if (user && 'serviceWorker' in navigator && 'PushManager' in window) {
-            const registerPush = async () => {
-                try {
-                    const register = await navigator.serviceWorker.ready;
-                    const subscription = await register.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-                    });
-
-                    // Send to backend
-                    await client.post('/auth/subscribe', subscription);
-                    console.log('Push Subscribed!');
-                } catch (err) {
-                    console.error('Push Registration Failed:', err);
-                }
-            };
-            registerPush();
-        }
-    }, [user]);
-
-    return null;
-};
 
 export default function App() {
     return (
@@ -81,7 +56,7 @@ export default function App() {
             <AuthProvider>
                 <SoundProvider>
                     <Toaster position="top-center" reverseOrder={false} />
-                    <PushManager />
+                    <NotificationPrompt />
                     <PwaInstallPrompt />
                     <Routes>
                         <Route path="/login" element={<Login />} />
