@@ -18,4 +18,24 @@ const sendNotification = async (subscription, payload) => {
     }
 };
 
-module.exports = { sendNotification };
+const sendToUsers = async (users, payload) => {
+    const results = { success: 0, failure: 0 };
+
+    for (const user of users) {
+        if (!user.pushSubscriptions || user.pushSubscriptions.length === 0) continue;
+
+        for (const subscription of user.pushSubscriptions) {
+            try {
+                await webpush.sendNotification(subscription, JSON.stringify(payload));
+                results.success++;
+            } catch (err) {
+                console.error(`Push Error (User: ${user._id}):`, err);
+                // Optional: cleanup invalid subscriptions here
+                results.failure++;
+            }
+        }
+    }
+    return results;
+};
+
+module.exports = { sendNotification, sendToUsers };

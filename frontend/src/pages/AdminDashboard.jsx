@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import client from '../api/client';
 import toast from 'react-hot-toast';
-import { Settings, Check, X, RefreshCw, Trash2, Calendar, FileText, Plus, Edit, Save, ArrowLeft, Copy, Users, Activity, AlertTriangle } from 'lucide-react';
+import { Settings, Check, X, RefreshCw, Trash2, Calendar, FileText, Plus, Edit, Save, ArrowLeft, Copy, Users, Activity, AlertTriangle, Bell } from 'lucide-react';
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('quizzes');
@@ -12,6 +12,12 @@ export default function AdminDashboard() {
     const [quizzes, setQuizzes] = useState([]);
     const [bulkJson, setBulkJson] = useState('');
     const [stats, setStats] = useState({ totalUsers: 0, newUsers: 0, dau: 0 });
+
+    // Notifications State
+    const [subscribers, setSubscribers] = useState({ subscribed: [], blocked: [] });
+    const [selectedRecipients, setSelectedRecipients] = useState([]);
+    const [selectAll, setSelectAll] = useState(false);
+    const [manualPush, setManualPush] = useState({ title: '', body: '', url: '/' });
 
     // Editing State
     const [editingQuiz, setEditingQuiz] = useState(null);
@@ -64,6 +70,7 @@ export default function AdminDashboard() {
         if (activeTab === 'users') fetchUsers();
         if (activeTab === 'quizzes') fetchQuizzes();
         if (activeTab === 'reported') fetchReported();
+        if (activeTab === 'notifications') fetchSubscribers();
     }, [activeTab]);
 
     const handleEditQuiz = async (id) => {
@@ -345,7 +352,7 @@ export default function AdminDashboard() {
             <header className="flex justify-between items-center mb-8">
                 <h1 className="text-2xl font-bold">Admin Console</h1>
                 <div className="flex gap-2">
-                    {['quizzes', 'users', 'review', 'reported', 'bulk'].map(tab => (
+                    {['quizzes', 'users', 'review', 'reported', 'bulk', 'notifications'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -497,6 +504,132 @@ export default function AdminDashboard() {
                         </div>
                     ))}
                     {reportedQuestions.length === 0 && <p className="text-center text-slate-500">No reported issues. Good job!</p>}
+                </div>
+            )}
+
+            {activeTab === 'notifications' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Compose Section */}
+                    <div className="card h-fit sticky top-4">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <Bell className="w-5 h-5 text-primary" /> Send Notification
+                        </h2>
+                        <form onSubmit={handleSendPush} className="space-y-4">
+                            <div>
+                                <label className="block text-sm mb-1 text-slate-400">Title</label>
+                                <input
+                                    required
+                                    value={manualPush.title}
+                                    onChange={e => setManualPush({ ...manualPush, title: e.target.value })}
+                                    className="w-full bg-background border border-slate-700 rounded p-3 focus:border-primary outline-none"
+                                    placeholder="e.g., New Challenge Live!"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1 text-slate-400">Body</label>
+                                <textarea
+                                    required
+                                    value={manualPush.body}
+                                    onChange={e => setManualPush({ ...manualPush, body: e.target.value })}
+                                    className="w-full bg-background border border-slate-700 rounded p-3 h-24 focus:border-primary outline-none"
+                                    placeholder="e.g., Test your knowledge on Kerala History now."
+                                ></textarea>
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1 text-slate-400">Action URL</label>
+                                <input
+                                    value={manualPush.url}
+                                    onChange={e => setManualPush({ ...manualPush, url: e.target.value })}
+                                    className="w-full bg-background border border-slate-700 rounded p-3 focus:border-primary outline-none"
+                                    placeholder="/quiz or /leaderboard"
+                                />
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-700/50">
+                                <p className="text-sm font-bold mb-2">Target Audience</p>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectAll}
+                                        onChange={e => setSelectAll(e.target.checked)}
+                                        className="w-4 h-4 rounded border-slate-600 bg-background text-primary focus:ring-primary"
+                                    />
+                                    <span className={selectAll ? 'text-white' : 'text-slate-400'}>Send to ALL Allowed Users ({subscribers.subscribed.length})</span>
+                                </div>
+                                {!selectAll && (
+                                    <p className="text-xs text-slate-500">
+                                        Selected: {selectedRecipients.length} users
+                                    </p>
+                                )}
+                            </div>
+
+                            <button disabled={loading} className="w-full btn-primary py-3 flex items-center justify-center gap-2">
+                                {loading ? <RefreshCw className="animate-spin w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                                Send Notification
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Recipient List */}
+                    <div className="space-y-6">
+                        {/* Allowed List */}
+                        <div>
+                            <h3 className="text-sm font-bold text-green-400 mb-2 flex items-center justify-between">
+                                <span>Allowed Users (Subscribed)</span>
+                                <span className="text-xs bg-green-400/10 px-2 py-1 rounded">{subscribers.subscribed.length}</span>
+                            </h3>
+                            <div className="bg-surface border border-slate-700 rounded-xl overflow-hidden max-h-96 overflow-y-auto">
+                                {!subscribers.subscribed.length ? (
+                                    <p className="p-4 text-center text-slate-500 text-sm">No subscribed users yet.</p>
+                                ) : (
+                                    subscribers.subscribed.map(u => (
+                                        <div key={u._id} className="p-3 border-b border-slate-700/50 hover:bg-slate-800/50 flex items-center gap-3 transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                disabled={selectAll}
+                                                checked={selectAll || selectedRecipients.includes(u._id)}
+                                                onChange={e => {
+                                                    if (e.target.checked) setSelectedRecipients([...selectedRecipients, u._id]);
+                                                    else setSelectedRecipients(selectedRecipients.filter(id => id !== u._id));
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-600 bg-background text-primary focus:ring-primary"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium truncate">{u.name}</p>
+                                                <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                                            </div>
+                                            <div className="text-xs bg-slate-700 px-2 py-1 rounded flex items-center gap-1" title="Active Devices">
+                                                <Activity size={10} /> {u.deviceCount}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Blocked/Not Subscribed List */}
+                        <div>
+                            <h3 className="text-sm font-bold text-red-400 mb-2 flex items-center justify-between">
+                                <span>Not Subscribed / Blocked</span>
+                                <span className="text-xs bg-red-400/10 px-2 py-1 rounded">{subscribers.blocked.length}</span>
+                            </h3>
+                            <div className="bg-surface border border-slate-700 rounded-xl overflow-hidden max-h-60 overflow-y-auto opacity-75">
+                                {!subscribers.blocked.length ? (
+                                    <p className="p-4 text-center text-slate-500 text-sm">Everyone is subscribed! 🎉</p>
+                                ) : (
+                                    subscribers.blocked.map(u => (
+                                        <div key={u._id} className="p-3 border-b border-slate-700/50 flex items-center gap-3">
+                                            <X size={16} className="text-red-500" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-slate-400 truncate">{u.name}</p>
+                                                <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
