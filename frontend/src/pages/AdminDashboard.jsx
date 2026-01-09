@@ -66,7 +66,7 @@ export default function AdminDashboard() {
 
     const fetchSubscribers = async () => {
         try {
-            const { data } = await client.get('/admin/users-status');
+            const { data } = await client.get('/notifications/admin/users-status');
             setSubscribers(data);
         } catch (error) { console.error(error); }
     };
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
 
         setLoading(true);
         try {
-            await client.post('/admin/send-manual', {
+            await client.post('/notifications/admin/send-manual', {
                 ...manualPush,
                 recipients
             });
