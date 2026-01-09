@@ -10,9 +10,11 @@ dotenv.config();
 const q1 = require('./data/q1');
 const q2 = require('./data/q2');
 const q3 = require('./data/q3');
+const q4 = require('./data/q4');
+const q5 = require('./data/q5');
 
 // Combine all questions
-const questionsData = [...q1, ...q2, ...q3];
+const questionsData = [...q1, ...q2, ...q3, ...q4, ...q5];
 
 const seedPure = async () => {
     try {
